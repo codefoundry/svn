@@ -35,6 +35,8 @@ module Svn
       # error functions and ffi_lib entry
     end
 
+    # TODO: add a release method that calls svn_error_clear
+
   end
 
 end
