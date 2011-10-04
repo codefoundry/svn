@@ -20,11 +20,6 @@ module Svn #:nodoc:
       end
     end
 
-    # clear all allocated memory in the pool so it can be reused
-    def clear
-      C.clear( self )
-    end
-
     module C
       extend FFI::Library
       ffi_lib 'libapr-1.so.0'
@@ -36,8 +31,14 @@ module Svn #:nodoc:
 
       # life-cycle methods
       attach_function :initialize, :apr_initialize, [], :apr_status
-      attach_function :create, :apr_pool_create_ex, [:pointer, :pool, :abort_function, :pointer], :apr_status
+
+      attach_function :create,
+          :apr_pool_create_ex,
+          [:pointer, :pool, :abort_function, :pointer],
+          :apr_status
+
       attach_function :clear, :apr_pool_clear, [:pool], :void
+
       attach_function :destroy, :apr_pool_destroy, [:pool], :void
 
       # instance methods
@@ -51,6 +52,12 @@ module Svn #:nodoc:
 
       initialize
     end
+
+    # use the C module for all bound methods
+    bind_to C
+
+    # clear all allocated memory in the pool so it can be reused
+    bind :clear
 
   end
 
