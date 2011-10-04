@@ -1,8 +1,6 @@
 require 'rubygems'
 require 'ffi'
 
-require 'svn/utils'
-
 module Svn
   
   class Stream < FFI::AutoPointer
