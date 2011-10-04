@@ -7,6 +7,9 @@ require 'svn/pools'
 require 'svn/errors'
 require 'svn/streams'
 require 'svn/diffs'
+require 'svn/roots'
+require 'svn/revisions'
+require 'svn/repos'
 
 # General Svn docs here!
 module Svn

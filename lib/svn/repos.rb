@@ -8,27 +8,39 @@ module Svn #:nodoc:
   # This represents both the repository and the filesystem
   class Repo < FFI::AutoPointer
 
+    attr_reader :pool
+
+    def initialize( address, pool )
+      @pool = pool
+    end
+
     class << self
-      def open( path, pool=RootPool )
-        # we may need to call find_root_path for this, if C.open expects a
-        # repository root path
+      def open( path, parent=RootPool )
+        # get a new pool for all interactions with this repository
+        pool = Pool.create( parent )
+
+        # TODO: we may need to call find_root_path for this, if C.open expects
+        # an exact repository root path
         out = FFI::MemoryPointer.new( :pointer )
 
         Error.check_and_raise(
-            C.open( out, path, nil, pool )
+            C.open( out, path, pool )
           )
 
-        new( out.read_pointer )
+        new( out.read_pointer, pool )
       end
 
-      def create( path, pool=RootPool )
+      def create( path, parent=RootPool )
+        # get a new pool for all interactions with this repository
+        pool = Pool.create( parent )
+
         out = FFI::MemoryPointer.new( :pointer )
 
         Error.check_and_raise(
             C.create( out, path, nil, nil, nil, nil, pool )
           )
 
-        new( out.read_pointer )
+        new( out.read_pointer, pool )
       end
 
       def delete( path, pool=RootPool )
@@ -36,35 +48,54 @@ module Svn #:nodoc:
             C.delete( path, pool )
           )
       end
-    end
 
-    # return the repository's filesystem
-    def filesystem
-      @fs ||= C.filesystem( self )
+      # this release method does nothing because the repo will be released with
+      # its pool, which is @pool
+      def release( ptr )
+      end
     end
-    alias_method :fs, :filesystem
 
     # A filesystem object.  Repositories completely encapsulate the filesystem,
     # so it is unnecessary to use it directly.
     class FileSystem < FFI::AutoPointer
+      class << self
+        # this release method does nothing because the filesystem will be
+        # released with its pool, which is @pool on the repo that owns the fs
+        def release( ptr )
+        end
+      end
+    end
+
+    # return the repository's filesystem
+    def filesystem
+      @fs ||= FileSystem.new( C.filesystem( self ) )
+    end
+    alias_method :fs, :filesystem
+
+    def revision( num )
+      out = FFI::Pointer.new( :pointer )
+      C.revision( out, filesystem, num, pool )
+      Revision.new( out.read_pointer )
     end
 
     module C
       extend FFI::Library
       ffi_lib 'libsvn_repos-1.so.1'
-      ffi_lib 'libsvn_fs-1.so.1'
 
-      typedef :out_pointer, :pointer
+      typedef :pointer, :out_pointer
       typedef Pool, :pool
       typedef CError.by_ref, :error
       typedef FileSystem, :filesystem
+      #typedef Properties, :hash # TODO
+      typedef Revision, :revision
+      #typedef Transaction, :transaction
       typedef Repo, :repo
       typedef :long, :revnum
 
       # repository functions
       attach_function :open,
-          :svn_repos_open2,
-          [ :out_pointer, :string, :pointer, :pool ],
+          :svn_repos_open,
+          [ :out_pointer, :string, :pool ],
           :error
       attach_function :create,
           :svn_repos_create,
@@ -74,24 +105,35 @@ module Svn #:nodoc:
           :svn_repos_delete,
           [ :string, :pool ],
           :error
-      attach_function :filesystem
+
+      # filesystem accessor
+      attach_function :filesystem,
           :svn_repos_fs,
           [ :repo ],
           :filesystem
 
-      # filesystem functions
-      attach_function :revision_root,
+      # transaction (root) accessor, creation, and manipulation
+      #attach_function :create_transaction,
+      #    :svn_repos_fs_begin_txn_for_commit2,
+      #    [ :out_pointer, :repo, :revnum, :hash, :pool ],
+      #    :error
+      #attach_function :commit_transaction,
+      #    :svn_repos_fs_commit_txn,
+      #    [ :out_pointer, :repo, :out_pointer, :transaction ],
+      #    :error
+
+      ffi_lib 'libsvn_fs-1.so.1'
+
+      # revision (root) accessor
+      attach_function :revision,
           :svn_fs_revision_root,
           [ :out_pointer, :filesystem, :revnum, :pool ],
           :error
-      attach_function :transaction_root,
-          :svn_fs_txn_root,
-          [ :out_pointer, :pointer, :pool ],
-          :error
-      attach_function :close_root,
-          :svn_fs_close_root,
-          [ :pointer ],
-          :void
+
+      #attach_function :open_transaction,
+      #    :svn_fs_begin_txn2,
+      #    [ :out_pointer, :filesystem, :string, :pool ],
+      #    :error
     end
 
   end
