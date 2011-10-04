@@ -113,21 +113,6 @@ module Svn #:nodoc:
       attach_function :has_conflicts, :svn_diff_contains_conflicts, [:diff], :int
     end
 
-#    attach_method C, :output_unified,
-#        :returning => [2, self.class],
-#        :return_handler => Error.method( :check_and_raise )
-#
-#    def self.attach_method( mod, method_name, options )
-#      define_method method_name.to_sym do |*args|
-#        outs = options[:returning].map { |place, type| [place, type, MemoryPointer.new( type.size )] }
-#        outs.each { |place, type, pointer| args.insert( place, pointer ) }
-#        args.insert( options[:self_place], self )
-#        ret = mod.call( method_name.to_sym, *args )
-#        options[:return_handler].call( ret )
-#        return outs.map { |place, type, pointer| type.new( pointer ) }
-#      end
-#    end
-
   end
 
 end
