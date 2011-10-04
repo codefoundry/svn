@@ -70,19 +70,19 @@ module Svn #:nodoc:
     end
 
     def dir?( path )
-      out = FFI::Pointer.new( :int )
+      out = FFI::MemoryPointer.new( :int )
       C.is_dir( out, self, path, pool )
       out.read_int == 1
     end
 
     def file?( path )
-      out = FFI::Pointer.new( :int )
+      out = FFI::MemoryPointer.new( :int )
       C.is_file( out, self, path, pool )
       out.read_int == 1
     end
 
     def created_rev( path )
-      out = FFI::Pointer.new( :int )
+      out = FFI::MemoryPointer.new( :int )
       C.created_rev( out, self, path, pool )
       out.read_int
     end

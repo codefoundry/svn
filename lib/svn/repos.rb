@@ -10,11 +10,16 @@ module Svn #:nodoc:
 
     attr_reader :pool
 
-    def initialize( address, pool )
+    def initialize( addr, pool )
+      super( addr )
       @pool = pool
     end
 
     class << self
+      #--
+      # many methods remove trailing separators; this is to avoid triggering
+      # assertions in SVN libs
+      #++
       def open( path, parent=RootPool )
         # get a new pool for all interactions with this repository
         pool = Pool.create( parent )
@@ -24,7 +29,7 @@ module Svn #:nodoc:
         out = FFI::MemoryPointer.new( :pointer )
 
         Error.check_and_raise(
-            C.open( out, path, pool )
+            C.open( out, path.chomp(File::SEPARATOR), pool )
           )
 
         new( out.read_pointer, pool )
@@ -37,7 +42,7 @@ module Svn #:nodoc:
         out = FFI::MemoryPointer.new( :pointer )
 
         Error.check_and_raise(
-            C.create( out, path, nil, nil, nil, nil, pool )
+            C.create( out, path.chomp(File::SEPARATOR), nil, nil, nil, nil, pool )
           )
 
         new( out.read_pointer, pool )
@@ -45,12 +50,12 @@ module Svn #:nodoc:
 
       def delete( path, pool=RootPool )
         Error.check_and_raise(
-            C.delete( path, pool )
+            C.delete( path.chomp(File::SEPARATOR), pool )
           )
       end
 
-      # this release method does nothing because the repo will be released with
-      # its pool, which is @pool
+      # this release method does nothing because the repo will be released when
+      # its pool is destroyed
       def release( ptr )
       end
     end
@@ -66,16 +71,22 @@ module Svn #:nodoc:
       end
     end
 
-    # return the repository's filesystem
+    # returns the repository's filesystem
+    #
+    # this is for internal use because Repo objects should handle all fs
+    # functionality
     def filesystem
-      @fs ||= FileSystem.new( C.filesystem( self ) )
+      @fs ||= C.filesystem( self )
     end
     alias_method :fs, :filesystem
 
+    # returns a Revision for rev +num+, or nil if the rev does not exist
     def revision( num )
-      out = FFI::Pointer.new( :pointer )
+      out = FFI::MemoryPointer.new( :pointer )
       C.revision( out, filesystem, num, pool )
-      Revision.new( out.read_pointer )
+      ptr = out.read_pointer
+      # if the pointer is NULL, return nil instead of a Revision
+      Revision.new( ptr, pool ) unless ptr.null?
     end
 
     module C
@@ -91,6 +102,12 @@ module Svn #:nodoc:
       #typedef Transaction, :transaction
       typedef Repo, :repo
       typedef :long, :revnum
+
+      # misc functions
+      attach_function :find,
+          :svn_repos_find_root_path,
+          [ :string, :pool ],
+          :string
 
       # repository functions
       attach_function :open,

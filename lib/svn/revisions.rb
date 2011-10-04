@@ -5,6 +5,11 @@ module Svn #:nodoc:
 
   class Revision < Root
 
+    def initialize( addr, pool )
+      super( addr )
+      @pool = pool
+    end
+
     def to_i
       revnum
     end
