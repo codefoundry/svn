@@ -5,8 +5,8 @@ module Svn #:nodoc:
 
   class Revision < Root
 
-    def initialize( addr, pool )
-      super( addr )
+    def initialize( ptr, pool )
+      super( ptr )
       @pool = pool
     end
 

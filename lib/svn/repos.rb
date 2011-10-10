@@ -10,8 +10,8 @@ module Svn #:nodoc:
 
     attr_reader :pool
 
-    def initialize( addr, pool )
-      super( addr )
+    def initialize( ptr, pool )
+      super( ptr )
       @pool = pool
     end
 
@@ -65,7 +65,8 @@ module Svn #:nodoc:
     class FileSystem < FFI::AutoPointer
       class << self
         # this release method does nothing because the filesystem will be
-        # released with its pool, which is @pool on the repo that owns the fs
+        # released with its pool, which is associated with the repo that owns
+        # the filesystem
         def release( ptr )
         end
       end
