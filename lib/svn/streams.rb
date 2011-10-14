@@ -25,24 +25,38 @@ module Svn
       extend FFI::Library
       ffi_lib 'libsvn_subr-1.so.1'
 
+      typedef :pointer, :in_out_len
       typedef CError.by_ref, :error
       typedef Pool, :pool
+      typedef Stream, :stream
+      typedef :size_t, :apr_size
 
       callback :read_function, [:pointer, :pointer, :pointer], :error
       callback :write_function, [:pointer, :string, :pointer], :error
 
-      # lifecycle methods
-      attach_function :create, :svn_stream_create, [:pointer, :pool], :pointer
-      attach_function :set_read, :svn_stream_set_read, [:pointer, :read_function], :void
-      attach_function :set_write, :svn_stream_set_write, [:pointer, :write_function], :void
-      attach_function :close, :svn_stream_close, [:pointer], :error
+      # lifecycle functions
+      attach_function :create,
+          :svn_stream_create,
+          [:pointer, :pool], :pointer
+      attach_function :set_read,
+          :svn_stream_set_read,
+          [:stream, :read_function], :void
+      attach_function :set_write,
+          :svn_stream_set_write,
+          [:stream, :write_function], :void
+      attach_function :close,
+          :svn_stream_close,
+          [:stream], :error
 
       # note: the SVN docs say that short reads indicate the end of the stream
       # and short writes indicate an error.  this means that we cannot use
       # read_nonblock and write_nonblock, since they do not guarantee anything
       # will happen.
 
-      ReadFromIO = FFI::Function.new( :pointer, [:pointer, :pointer, :pointer] ) do |io_ptr, out_buffer, in_out_len|
+      ReadFromIO = FFI::Function.new(
+          :pointer, [:pointer, :pointer, :pointer]
+        ) do |io_ptr, out_buffer, in_out_len|
+
         # read the number of bytes requested and unwrap the io object
         bytes_to_read = in_out_len.read_int
         io = Svn::Utils.unwrap(io_ptr)
@@ -57,12 +71,15 @@ module Svn
         nil # return no error
       end
 
-      WriteToIO = FFI::Function.new( :pointer, [:pointer, :string, :pointer] ) do |io_ptr, in_string, in_out_len|
+      WriteToIO = FFI::Function.new(
+          :pointer, [:pointer, :string, :pointer]
+        ) do |io_ptr, in_string, in_out_len|
+
         # read the size of in_string and unwrap the io object
         bytes_to_write = in_out_len.read_int
         io = Svn::Utils.unwrap(io_ptr)
 
-        # should we check that in_string isn't longer than bytes_to_write?
+        # should we check that in_string isn't longer than in_out_len?
         bytes_written = io.write( in_string )
 
         # write the actual number of bytes written to io
@@ -70,6 +87,39 @@ module Svn
 
         nil # return no error
       end
+
+      # accessor functions
+      attach_function :read,
+          :svn_stream_read,
+          [ :stream, :buffer_out, :in_out_len ],
+          :error
+    end
+
+    def read( size=8192 )
+      # setup the pointers
+      @in_out_len ||= FFI::MemoryPointer.new( :size_t )
+      @in_out_len.write_ulong( size )
+
+      # make sure a buffer for reading exists and save it for reuse
+      if @read_buf.nil? or @read_buf.size < size
+        @read_buf = FFI::Buffer.alloc_out( size )
+      end
+
+      # call read to fill the buffer
+      Error.check_and_raise(
+          C.read( self, @read_buf, @in_out_len )
+        )
+
+      @read_buf.read_bytes( @in_out_len.read_ulong )
+    end
+
+    # reads the stream contents into a StringIO object
+    def to_string_io
+      content = StringIO.new
+      while bytes = read and !bytes.empty?
+        content.write( bytes )
+      end
+      content
     end
   end
 
