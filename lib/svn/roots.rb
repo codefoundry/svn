@@ -19,6 +19,8 @@ module Svn #:nodoc:
       typedef Pool, :pool
       typedef CError.by_ref, :error
       typedef Root, :root
+      typedef :string, :path
+      typedef :string, :name
 
       # lifecycle functions
       attach_function :close_root,
@@ -29,35 +31,35 @@ module Svn #:nodoc:
       # node metadata
       attach_function :is_dir,
           :svn_fs_is_dir,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
       attach_function :is_file,
           :svn_fs_is_file,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
       attach_function :created_rev,
           :svn_fs_node_created_rev,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
       attach_function :created_path,
           :svn_fs_node_created_path,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
 
       # props
-      attach_function :get_prop,
+      attach_function :node_prop,
           :svn_fs_node_prop,
-          [ :out_pointer, :root, :string, :string, :pool ],
+          [ :out_pointer, :root, :path, :name, :pool ],
           :error
 
       # files
-      attach_function :get_size,
+      attach_function :file_size,
           :svn_fs_file_length,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
-      attach_function :get_content,
+      attach_function :file_content,
           :svn_fs_file_contents,
-          [ :out_pointer, :root, :string, :pool ],
+          [ :out_pointer, :root, :path, :pool ],
           :error
     end
 
@@ -85,12 +87,12 @@ module Svn #:nodoc:
         :validate => Error.return_check,
         &add_pool
 
-    bind :get_size,
+    bind :file_size,
         :returning => :int64,
         :validate => Error.return_check,
         &add_pool
 
-    bind :get_content,
+    bind :file_content,
         :returning => Stream,
         :before_return => :to_string_io,
         :validate => Error.return_check,
@@ -102,12 +104,12 @@ module Svn #:nodoc:
         &add_pool
 
     bind :created_path,
-        :returning => CountedString.by_ref,
+        :returning => :string,
         :validate => Error.return_check,
         &add_pool
 
-    bind :get_prop,
-        :returning => CountedString.by_ref,
+    bind :node_prop,
+        :returning => CountedString,
         :before_return => :to_s,
         :validate => Error.return_check,
         &add_pool
