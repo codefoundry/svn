@@ -92,6 +92,8 @@ module Svn #:nodoc:
               # avoid instantiation, pass :pointer as the type
               if type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
                 type.new( ptr.read_pointer )
+              elsif type.is_a?( FFI::Type::Mapped )
+                type.from_native( ptr.read_pointer, nil )
               else
                 ptr.send( :"read_#{type}" )
               end
