@@ -17,7 +17,7 @@ module Svn #:nodoc:
 
     class << self
       #--
-      # many methods remove trailing separators; this is to avoid triggering
+      # several methods remove trailing separators; this is to avoid triggering
       # assertions in SVN libs
       #++
       def open( path, parent=RootPool )
@@ -80,15 +80,6 @@ module Svn #:nodoc:
       @fs ||= C.filesystem( self )
     end
     alias_method :fs, :filesystem
-
-    # returns a Revision for rev +num+, or nil if the rev does not exist
-    def revision( num )
-      out = FFI::MemoryPointer.new( :pointer )
-      C.revision( out, filesystem, num, pool )
-      ptr = out.read_pointer
-      # if the pointer is NULL, return nil instead of a Revision
-      Revision.new( ptr, pool ) unless ptr.null?
-    end
 
     module C
       extend FFI::Library
@@ -153,6 +144,18 @@ module Svn #:nodoc:
       #    [ :out_pointer, :filesystem, :string, :pool ],
       #    :error
     end
+
+    # use the above C module for the source of bound functions
+    bind_to C
+
+    # returns a Revision for rev +num+, or nil if the rev does not exist
+    bind( :revision,
+        :returning => :pointer,
+        :before_return => Proc.new { |ptr|
+            Revision.new( ptr, pool ) unless ptr.null?
+          },
+        :validate => Error.return_check,
+        ) { |out, this, num| [ out, fs, num, pool ] }
 
   end
 
