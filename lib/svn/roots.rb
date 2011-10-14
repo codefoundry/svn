@@ -49,10 +49,6 @@ module Svn #:nodoc:
           :svn_fs_node_prop,
           [ :out_pointer, :root, :string, :string, :pool ],
           :error
-      #attach_function :set_prop,
-      #    :svn_fs_node_change_prop,
-      #    [ :root, :string, :string, :string, :pool ],
-      #    :error
 
       # files
       attach_function :get_size,
@@ -60,7 +56,7 @@ module Svn #:nodoc:
           [ :out_pointer, :root, :string, :pool ],
           :error
       attach_function :get_content,
-          :svn_fs_file_length,
+          :svn_fs_file_contents,
           [ :out_pointer, :root, :string, :pool ],
           :error
     end
@@ -69,36 +65,52 @@ module Svn #:nodoc:
       @pool ||= Svn::RootPool
     end
 
-    def dir?( path )
-      out = FFI::MemoryPointer.new( :int )
-      C.is_dir( out, self, path, pool )
-      out.read_int == 1
-    end
+    # helper procs for method binding
+    test_c_true = Proc.new { |i| i == 1 }
+    add_pool = Proc.new { |out, this, *args| [ out, this, *args, pool ] }
 
-    def file?( path )
-      out = FFI::MemoryPointer.new( :int )
-      C.is_file( out, self, path, pool )
-      out.read_int == 1
-    end
+    # use the above C module for the source of bound functions
+    bind_to C
 
-    def created_rev( path )
-      out = FFI::MemoryPointer.new( :int )
-      C.created_rev( out, self, path, pool )
-      out.read_int
-    end
+    # bound method definitions
+    bind :dir?, :to => :is_dir,
+        :returning => :int,
+        :before_return => test_c_true,
+        :validate => Error.return_check,
+        &add_pool
 
-    # TODO: how are out buffers used?
-    #def created_path( path )
-    #  out = FFI::OutBuffer.new
-    #  C.created_rev( out, self, path, pool )
-    #  out.read
-    #end
+    bind :file?, :to => :is_file,
+        :returning => :int,
+        :before_return => test_c_true,
+        :validate => Error.return_check,
+        &add_pool
 
-    #bind_to C
+    bind :get_size,
+        :returning => :int64,
+        :validate => Error.return_check,
+        &add_pool
 
-    #bind :is_dir
-    #bind :is_file
+    bind :get_content,
+        :returning => Stream,
+        :before_return => :to_string_io,
+        :validate => Error.return_check,
+        &add_pool
 
+    bind :created_rev,
+        :returning => :long,
+        :validate => Error.return_check,
+        &add_pool
+
+    bind :created_path,
+        :returning => CountedString.by_ref,
+        :validate => Error.return_check,
+        &add_pool
+
+    bind :get_prop,
+        :returning => CountedString.by_ref,
+        :before_return => :to_s,
+        :validate => Error.return_check,
+        &add_pool
 
   end
 
