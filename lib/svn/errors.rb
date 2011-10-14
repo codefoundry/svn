@@ -5,10 +5,19 @@ module Svn
 
   class Error < RuntimeError
 
-    # checks error and raises an exception for error if necessary
-    def self.check_and_raise( err )
-      return if err.null?
-      raise Error.new( err )
+    class << self
+
+      # checks error and raises an exception for error if necessary
+      def check_and_raise( err )
+        return if err.null?
+        raise Error.new( err )
+      end
+
+      # returns a proc that calls check_and_raise
+      def return_check
+        @@return_check ||= Proc.new { |ptr| Error.check_and_raise( ptr ) }
+      end
+
     end
 
     attr_reader :c_error
