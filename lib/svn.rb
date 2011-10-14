@@ -1,19 +1,18 @@
 require 'rubygems'
 require 'ffi'
 
-$: << 'lib'
 require 'svn/utils'
 require 'svn/pools'
-require 'svn/counted_strings'
 require 'svn/errors'
+require 'svn/counted_strings'
 require 'svn/streams'
-require 'svn/diffs'
-require 'svn/roots'
-require 'svn/revisions'
-require 'svn/repos'
 
 # General Svn docs here!
 module Svn
+  autoload :Root, 'svn/roots'
+  autoload :Repo, 'svn/repos'
+  autoload :Revision, 'svn/revisions'
+  autoload :Diff, 'svn/diffs'
 end
 
 if $0 == __FILE__
