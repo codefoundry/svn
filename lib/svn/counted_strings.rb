@@ -3,7 +3,8 @@ require 'ffi'
 
 module Svn #:nodoc:
 
-  class CountedString < FFI::Struct
+  # a struct for interacting with svn_string_t values
+  class CountedStringStruct < FFI::Struct
 
     layout(
         # because the data may not be NULL-terminated, treat it as a pointer
@@ -18,5 +19,8 @@ module Svn #:nodoc:
     end
 
   end
+
+  # the svn_string_t pointer type, which is the one used externally
+  CountedString = CountedStringStruct.by_ref
 
 end

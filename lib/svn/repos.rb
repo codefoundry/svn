@@ -152,9 +152,9 @@ module Svn #:nodoc:
     bind( :revision,
         :returning => :pointer,
         :before_return => Proc.new { |ptr|
-            Revision.new( ptr, pool ) unless ptr.null?
+            Revision.new( ptr, fs, pool ) unless ptr.null?
           },
-        :validate => Error.return_check,
+        :validate => Error.return_check
         ) { |out, this, num| [ out, fs, num, pool ] }
 
   end
