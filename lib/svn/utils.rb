@@ -94,6 +94,8 @@ module Svn #:nodoc:
                 type.new( ptr.read_pointer )
               elsif type.is_a?( FFI::Type::Mapped )
                 type.from_native( ptr.read_pointer, nil )
+              elsif type == :string
+                ptr.read_pointer.read_string
               else
                 ptr.send( :"read_#{type}" )
               end
