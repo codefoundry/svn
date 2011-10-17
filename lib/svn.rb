@@ -3,6 +3,7 @@ require 'ffi'
 
 require 'svn/utils'
 require 'svn/pools'
+require 'svn/apr_utils'
 require 'svn/errors'
 require 'svn/counted_strings'
 require 'svn/streams'
