@@ -51,6 +51,10 @@ module Svn #:nodoc:
           :svn_fs_node_prop,
           [ :out_pointer, :root, :path, :name, :pool ],
           :error
+      attach_function :node_proplist,
+          :svn_fs_node_proplist,
+          [ :out_pointer, :root, :path, :pool ],
+          :error
 
       # files
       attach_function :file_size,
@@ -111,6 +115,12 @@ module Svn #:nodoc:
     bind :node_prop,
         :returning => CountedString,
         :before_return => :to_s,
+        :validate => Error.return_check,
+        &add_pool
+
+    bind :node_props, :to => :node_proplist
+        :returning => AprHash,
+        :before_return => :to_h,
         :validate => Error.return_check,
         &add_pool
 
