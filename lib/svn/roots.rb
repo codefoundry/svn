@@ -65,6 +65,12 @@ module Svn #:nodoc:
           :svn_fs_file_contents,
           [ :out_pointer, :root, :path, :pool ],
           :error
+
+      # dirs
+      attach_function :dir_content,
+          :svn_fs_dir_entries,
+          [ :out_pointer, :root, :path, :pool ],
+          :error
     end
 
     def pool
@@ -82,6 +88,12 @@ module Svn #:nodoc:
     bind :dir?, :to => :is_dir,
         :returning => :int,
         :before_return => test_c_true,
+        :validate => Error.return_check,
+        &add_pool
+
+    bind :dir_content,
+        :returning => AprHash.factory( :string, :pointer ),
+        :before_return => Proc.new { |h| h.to_h.keys },
         :validate => Error.return_check,
         &add_pool
 
@@ -112,14 +124,16 @@ module Svn #:nodoc:
         :validate => Error.return_check,
         &add_pool
 
-    bind :node_prop,
+    # returns the +path+'s property value for +name+
+    bind :prop_for, :to => :node_prop,
         :returning => CountedString,
         :before_return => :to_s,
         :validate => Error.return_check,
         &add_pool
 
-    bind :node_props, :to => :node_proplist
-        :returning => AprHash,
+    # returns a hash of name to property values for +path+
+    bind :props_for, :to => :node_proplist,
+        :returning => AprHash.factory( :string, [:pointer, :string] ),
         :before_return => :to_h,
         :validate => Error.return_check,
         &add_pool

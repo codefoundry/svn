@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'ffi'
 
 module Svn #:nodoc:
 
@@ -19,10 +20,99 @@ module Svn #:nodoc:
       ObjectSpace._id2ref( ptr.read_uint64 )
     end
 
+    # returns the contents of the pointer as type
+    #
+    # for example:
+    #  # void get_string( char **p ):
+    #  get_string( out_ptr ); content_for( out_ptr, :string )
+    #
+    #  # void get_hash( hash_t **p ):
+    #  class Hash < FFI::AutoPointer; end
+    #  get_hash( out_ptr ); content_for( out_ptr, Hash )
+    def content_for( pointer, type, len=nil )
+      # if the type is a FFI::Pointer, then try to instantiate it; to
+      # avoid instantiation, pass :pointer as the type
+      if type.is_a? Array
+        type.inject( pointer ) do |ptr, subtype|
+          content_for( ptr, subtype, len )
+        end
+      elsif type.is_a? Extensions::Factory
+        type.new( pointer.read_pointer )
+      elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
+        type.new( pointer.read_pointer )
+      elsif type.is_a?( FFI::Type::Mapped )
+        type.from_native( pointer.read_pointer, nil )
+      elsif type == :string
+        pointer.read_pointer.read_string( ( len == -1 ) ? nil : len )
+      else
+        pointer.send( :"read_#{type}" )
+      end
+    end
+
+    def pointer_for( value, type )
+      if type.is_a? Array
+        type.reverse.inject( value ) do |val, subtype|
+          pointer_for( val, subtype )
+        end
+      elsif type.is_a? Extensions::Factory
+        pointer_for( value, type.real_class )
+      elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
+        # use val directly
+        value
+      elsif type.is_a?( FFI::Type::Mapped )
+        # mapped types are really pointers to structs; they are read
+        # differently, but they should still be pointers we can use directly
+        value
+      elsif type == :string
+        # strings are cast automatically
+        value
+      else
+        # it must be a FFI type, use a new MemoryPointer
+        ptr = FFI::MemoryPointer.new( type )
+        ptr.send( :"write_#{type}", value )
+        ptr
+      end
+    end
+
     # this module contains extensions for classes that inherit from FFI::Struct
     # and FFI::AutoPointer to make binding instance methods to C methods more
     # concise
     module Extensions
+
+      # a generic factory class for use with FFI data types that adds default
+      # arguments to constructor calls
+      #
+      #  # when NativeHash is created, the args are [ptr, :string, :string]
+      #  bind :get_hash, :returning => NativeHash.factory( :string, :string )
+      class Factory
+        def initialize( klass, *args )
+          @klass = klass
+          @added_args = args
+        end
+
+        def new( *args )
+          @klass.new( *args, *@added_args )
+        end
+
+        def real_class
+          @klass
+        end
+
+        def size
+          @klass.size
+        end
+      end
+
+      # convenience method that returns a Factory instance for self with the
+      # given args
+      #
+      # the following are equivalent:
+      #  NativeHash.factory( :string, :string )
+      #
+      #  Factory( NativeHash, :string, :string )
+      def factory( *args )
+        Factory.new( self, *args )
+      end
 
       module_function
 
@@ -88,17 +178,7 @@ module Svn #:nodoc:
           # the pointers and replace the return_val
           unless return_types.empty?
             return_val = return_ptrs.zip( return_types ).map do |ptr, type|
-              # if the type is a FFI::Pointer, then try to instantiate it; to
-              # avoid instantiation, pass :pointer as the type
-              if type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
-                type.new( ptr.read_pointer )
-              elsif type.is_a?( FFI::Type::Mapped )
-                type.from_native( ptr.read_pointer, nil )
-              elsif type == :string
-                ptr.read_pointer.read_string
-              else
-                ptr.send( :"read_#{type}" )
-              end
+              Utils.content_for( ptr, type )
             end
             return_val = return_val.first if single_return
           end

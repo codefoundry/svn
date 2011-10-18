@@ -12,15 +12,18 @@ module Svn #:nodoc:
 
     attr_reader :pool
 
-    def initialize( ptr, pool=RootPool )
+    def initialize( ptr, key_type, val_type, pool=RootPool )
       super( ptr )
+      @key_type = key_type
+      @val_type = val_type
       @pool = pool
+      @pointers = []
     end
 
     class << self
       # creates a new apr_hash_t that contains +contents+, if given
-      def create( contents={} )
-        result = new
+      def create( key_type, val_type, contents={}, pool=RootPool )
+        result = new( key_type, val_type, pool )
         contents.each_pair do |key, val|
           result[ key.to_s ] = val
         end
@@ -89,25 +92,55 @@ module Svn #:nodoc:
       iter = C.first( pool, self )
 
       while !iter.null?
+        # get the key, key length, and val
         C.this( iter, key_ptr, len_ptr, val_ptr )
-        key = key_ptr.read_pointer.read_string( len_ptr.read_long )
-        yield key, val_ptr.read_pointer if block_given?
+
+        # read the key
+        key_len = len_ptr.read_long
+        key = Utils.content_for( key_ptr, @key_type, key_len )
+
+        # yield the key and value
+        yield key, Utils.content_for( val_ptr, @val_type ) if block_given?
+
+        # advance to the next iteration
         iter = C.next( iter )
       end
     end
 
     def []( key )
-      # TODO: how should this be handled? detect the type of key and set klen
-      # accordingly? This may require translation between C and ruby
-      #
-      # maybe key.class.size should be passed when the key is not a String?
-      raise RuntimeError, 'AprHash keys must be strings' unless String === key
-      C.get( self, key, HASH_KEY_STRING )
+      val = nil # keep val in scope
+
+      if key.is_a? String && keys_null_terminated?
+        val = C.get( self, key, HASH_KEY_STRING )
+      elsif key.respond_to? :size
+        val = C.get( self, key, key.size )
+      elsif key.respond_to? :length
+        val = C.get( self, key, key.length )
+      else
+        raise ArgumentError, "Invalid key #{key}: cannot determine length"
+      end
+
+      Utils.content_for( val, @val_type )
     end
 
     def []=( key, val )
-      raise RuntimeError, 'AprHash keys must be strings' unless String === key
-      C.set( self, key, HASH_KEY_STRING, val )
+      val_ptr = Utils.pointer_for( val, @val_type )
+
+      # because the pointers passed in are referenced in native code, keep
+      # track of the pointers so they aren't garbage collected until this hash
+      # is destroyed
+      @pointers << val_ptr
+
+      if key.is_a? String && keys_null_terminated?
+        C.set( self, key, HASH_KEY_STRING, val_ptr )
+      elsif key.respond_to? :size
+        C.set( self, key, key.size, val_ptr )
+      elsif key.respond_to? :length
+        C.set( self, key, key.length, val_ptr )
+      else
+        raise ArgumentError, "Invalid key #{key}: cannot determine length"
+      end
+
       val
     end
 
