@@ -33,7 +33,7 @@ module Svn #:nodoc:
       typedef CError.by_ref, :error
       typedef Root, :root
       typedef :long, :revnum
-      typedef :string, :path
+      typedef :string, :name
       typedef Repo::FileSystem, :fs
       typedef CountedString, :counted_string
 
@@ -44,7 +44,12 @@ module Svn #:nodoc:
 
       attach_function :prop,
           :svn_fs_revision_prop,
-          [ :out_pointer, :fs, :revnum, :path, :pool ],
+          [ :out_pointer, :fs, :revnum, :name, :pool ],
+          :error
+
+      attach_function :proplist,
+          :svn_fs_revision_proplist,
+          [ :out_pointer, :fs, :revnum, :pool ],
           :error
     end
 
@@ -60,7 +65,14 @@ module Svn #:nodoc:
         :returning => CountedString,
         :before_return => :to_s,
         :validate => Error.return_check
-      ) { |out, this, path| [ out, fs, num, path, pool ] }
+      ) { |out, this, name| [ out, fs, num, name, pool ] }
+
+    # returns a hash of revision properties
+    bind( :props, :to => :proplist,
+        :returning => AprHash.factory( :string, [:pointer, :string] ),
+        :before_return => :to_h,
+        :validate => Error.return_check
+      ) { |out, this| [ out, fs, num, pool ] }
 
     def log
       prop( LOG_PROP_NAME )
