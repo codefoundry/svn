@@ -155,8 +155,7 @@ module Svn #:nodoc:
             Revision.new( ptr, fs, pool ) unless ptr.null?
           },
         :validate => Error.return_check
-        ) { |out, this, num| [ out, fs, num, pool ] }
-
+      ) { |out, this, num| [ out, fs, num, pool ] }
   end
 
 end
