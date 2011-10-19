@@ -191,15 +191,15 @@ module Svn #:nodoc:
     def initialize( ptr, type, pool=RootPool )
       super( ptr )
       @type = type
-      @size = size
       @pool = pool
+      @pointers = []
     end
 
     class << self
       # creates a new AprArray of +nelts+ elements of +type+; allocation is done
       # in +pool+, which defaults to Svn::RootPool
       def create( type, nelts, pool=RootPool )
-        ptr = C.create( pool, FFI::Pointer.size, nelts )
+        ptr = C.create( pool, nelts, FFI::Pointer.size )
         new( ptr, type, pool )
       end
 
@@ -265,13 +265,43 @@ module Svn #:nodoc:
       location = C.push( self )
       location.write_pointer( ptr )
 
+      # because the pointers passed in are referenced in native code, keep
+      # track of the pointers so they aren't garbage collected until this hash
+      # is destroyed
+      @pointers << ptr
+
       el
+    end
+    alias_method :add, :push
+    alias_method :<<, :push
+
+    def copy_from( arr )
+      arr.each do |el|
+        self << el
+      end
+      self
     end
 
     def pop
       location = C.pop( self )
-      Utils.content_for( location, @type )
+      Utils.content_for( location.read_pointer, @type )
     end
+
+# these are commented out because they don't work. it doesn't look like APR
+# array accesses happen this way.
+#    def []( num )
+#      num = num.to_i
+#      Utils.content_for( get_pointer( num * FFI::Pointer.size ), @type )
+#    end
+#
+#    def []=( num, val )
+#      num = num.to_i
+#
+#      ptr = Utils.pointer_for( val, @type )
+#      put_pointer( num * FFI::Pointer.size, ptr )
+#
+#      val
+#    end
 
   end
 

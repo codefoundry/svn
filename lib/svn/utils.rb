@@ -75,6 +75,8 @@ module Svn #:nodoc:
       elsif type.is_a?( FFI::Type::Mapped )
         type.from_native( pointer, nil )
       elsif type == :string
+        # if len is nil or -1, use it for reading instead of counting on it to
+        # be null-terminated
         pointer.read_string( ( len == -1 ) ? nil : len )
       else
         pointer.send( :"read_#{type}" )
@@ -95,6 +97,9 @@ module Svn #:nodoc:
         # mapped types are really pointers to structs; they are read
         # differently, but they should still be pointers we can use directly
         value
+      elsif type == :string
+        # use from_string even if it isn't necessary to null-terminate
+        FFI::MemoryPointer.from_string( value )
       else
         # it must be a FFI type, use a new MemoryPointer
         ptr = FFI::MemoryPointer.new( type )
