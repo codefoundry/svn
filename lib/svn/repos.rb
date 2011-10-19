@@ -148,7 +148,8 @@ module Svn #:nodoc:
     # use the above C module for the source of bound functions
     bind_to C
 
-    # returns a Revision for rev +num+, or nil if the rev does not exist
+    # returns a Revision for rev +num+ or raises Svn::Error if the revision
+    # does not exist
     bind( :revision,
         :returning => :pointer,
         :before_return => Proc.new { |ptr|
