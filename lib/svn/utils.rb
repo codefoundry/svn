@@ -20,7 +20,7 @@ module Svn #:nodoc:
       ObjectSpace._id2ref( ptr.read_uint64 )
     end
 
-    # returns the contents of the pointer as type
+    # returns the *contents* of the pointer as type
     #
     # for example:
     #  # void get_string( char **p ):
@@ -29,9 +29,10 @@ module Svn #:nodoc:
     #  # void get_hash( hash_t **p ):
     #  class Hash < FFI::AutoPointer; end
     #  get_hash( out_ptr ); content_for( out_ptr, Hash )
-    def content_for( pointer, type, len=nil )
-      # if the type is a FFI::Pointer, then try to instantiate it; to
-      # avoid instantiation, pass :pointer as the type
+    #
+    # if the type is a FFI::Pointer, this will try to instantiate it; to avoid
+    # instantiation, pass :pointer as the type
+    def content_from( pointer, type, len=nil )
       if type.is_a? Array
         type.inject( pointer ) do |ptr, subtype|
           content_for( ptr, subtype, len )
@@ -44,6 +45,37 @@ module Svn #:nodoc:
         type.from_native( pointer.read_pointer, nil )
       elsif type == :string
         pointer.read_pointer.read_string( ( len == -1 ) ? nil : len )
+      else
+        pointer.send( :"read_#{type}" )
+      end
+    end
+
+    # TODO: deal with NULL pointers
+
+    # returns the the pointer's value as type
+    #
+    # for example:
+    #  # char *get_string( void ):
+    #  ptr = get_string()
+    #  str = content_for( ptr, :string )
+    #
+    #  # hash *get_hash( void ):
+    #  class Hash < FFI::AutoPointer; end
+    #  ptr = get_hash( out_ptr )
+    #  hash = content_for( out_ptr, Hash )
+    def content_for( pointer, type, len=nil )
+      if type.is_a? Array
+        type.inject( pointer ) do |ptr, subtype|
+          content_for( ptr, subtype, len )
+        end
+      elsif type.is_a? Extensions::Factory
+        type.new( pointer )
+      elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
+        type.new( pointer )
+      elsif type.is_a?( FFI::Type::Mapped )
+        type.from_native( pointer, nil )
+      elsif type == :string
+        pointer.read_string( ( len == -1 ) ? nil : len )
       else
         pointer.send( :"read_#{type}" )
       end
@@ -62,9 +94,6 @@ module Svn #:nodoc:
       elsif type.is_a?( FFI::Type::Mapped )
         # mapped types are really pointers to structs; they are read
         # differently, but they should still be pointers we can use directly
-        value
-      elsif type == :string
-        # strings are cast automatically
         value
       else
         # it must be a FFI type, use a new MemoryPointer
@@ -178,7 +207,7 @@ module Svn #:nodoc:
           # the pointers and replace the return_val
           unless return_types.empty?
             return_val = return_ptrs.zip( return_types ).map do |ptr, type|
-              Utils.content_for( ptr, type )
+              Utils.content_from( ptr, type )
             end
             return_val = return_val.first if single_return
           end
