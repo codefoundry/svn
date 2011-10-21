@@ -2,16 +2,17 @@ require 'rubygems'
 require 'ffi'
 
 require 'svn/utils'
+require 'svn/errors'
 require 'svn/pools'
 require 'svn/apr_utils'
-require 'svn/errors'
 require 'svn/counted_strings'
-require 'svn/streams'
 
 # General Svn docs here!
 module Svn
-  autoload :Root, 'svn/roots'
+  autoload :Stream, 'svn/streams'
+  autoload :Log, 'svn/logs'
   autoload :Repo, 'svn/repos'
+  autoload :Root, 'svn/roots'
   autoload :Revision, 'svn/revisions'
   autoload :Diff, 'svn/diffs'
 end
