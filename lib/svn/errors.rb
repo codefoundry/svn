@@ -59,7 +59,6 @@ module Svn
     module C
       extend FFI::Library
       ffi_lib 'libsvn_subr-1.so.1'
-      # error functions and ffi_lib entry
 
       typedef CError.by_ref, :error
       typedef :int, :size
