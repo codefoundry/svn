@@ -27,13 +27,12 @@ module Svn #:nodoc:
     #  bind :get_hash, :returning => NativeHash.factory( :string, :string )
     class Factory
 
+      # factories also work as DataConverters so they can be used with FFI
+      include FFI::DataConverter
+
       def initialize( klass, *args )
         @klass = klass
         @added_args = args
-
-        # factories also work as DataConverters so they can be used with FFI
-        extend FFI::DataConverter
-        native_type klass.native_type
       end
 
       def new( *args )
