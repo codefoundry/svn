@@ -20,6 +20,43 @@ module Svn #:nodoc:
       ObjectSpace._id2ref( ptr.read_uint64 )
     end
 
+    # a generic factory class for use with FFI data types that adds default
+    # arguments to constructor calls
+    #
+    #  # when NativeHash is created, the args are [ptr, :string, :string]
+    #  bind :get_hash, :returning => NativeHash.factory( :string, :string )
+    class Factory
+
+      def initialize( klass, *args )
+        @klass = klass
+        @added_args = args
+
+        # factories also work as DataConverters so they can be used with FFI
+        extend FFI::DataConverter
+        native_type klass.native_type
+      end
+
+      def new( *args )
+        @klass.new( *args, *@added_args )
+      end
+
+      def from_native( ptr, ctx )
+        @klass.new( ptr, *@added_args )
+      end
+
+      def native_type
+        @klass.native_type
+      end
+
+      def real_class
+        @klass
+      end
+
+      def size
+        @klass.size
+      end
+    end
+
     # returns the *contents* of the pointer as type
     #
     # for example:
@@ -37,20 +74,20 @@ module Svn #:nodoc:
         type.inject( pointer ) do |ptr, subtype|
           content_for( ptr, subtype, len )
         end
-      elsif type.is_a? Extensions::Factory
-        type.new( pointer.read_pointer )
+      elsif type.is_a? Factory
+        type.new( pointer.read_pointer ) unless pointer.null?
       elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
-        type.new( pointer.read_pointer )
+        type.new( pointer.read_pointer ) unless pointer.null?
       elsif type.is_a?( FFI::Type::Mapped )
-        type.from_native( pointer.read_pointer, nil )
+        type.from_native( pointer.read_pointer, nil ) unless pointer.null?
       elsif type == :string
-        pointer.read_pointer.read_string( ( len == -1 ) ? nil : len )
+        pointer.read_pointer.read_string(
+            ( len == -1 ) ? nil : len
+          ) unless pointer.null?
       else
         pointer.send( :"read_#{type}" )
       end
     end
-
-    # TODO: deal with NULL pointers
 
     # returns the the pointer's value as type
     #
@@ -68,18 +105,18 @@ module Svn #:nodoc:
         type.inject( pointer ) do |ptr, subtype|
           content_for( ptr, subtype, len )
         end
-      elsif type.is_a? Extensions::Factory
-        type.new( pointer )
+      elsif type.is_a? Factory
+        type.new( pointer ) unless pointer.null?
       elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
-        type.new( pointer )
+        type.new( pointer ) unless pointer.null?
       elsif type.is_a?( FFI::Type::Mapped )
-        type.from_native( pointer, nil )
+        type.from_native( pointer, nil ) unless pointer.null?
       elsif type == :string
         # if len is nil or -1, use it for reading instead of counting on it to
         # be null-terminated
-        pointer.read_string( ( len == -1 ) ? nil : len )
+        pointer.read_string( ( len == -1 ) ? nil : len ) unless pointer.null?
       else
-        pointer.send( :"read_#{type}" )
+        pointer.send( :"read_#{type}" ) unless pointer.null?
       end
     end
 
@@ -88,7 +125,7 @@ module Svn #:nodoc:
         type.reverse.inject( value ) do |val, subtype|
           pointer_for( val, subtype )
         end
-      elsif type.is_a? Extensions::Factory
+      elsif type.is_a? Factory
         pointer_for( value, type.real_class )
       elsif type.is_a?( Class ) && type.ancestors.include?( FFI::Pointer )
         # use val directly
@@ -112,30 +149,6 @@ module Svn #:nodoc:
     # and FFI::AutoPointer to make binding instance methods to C methods more
     # concise
     module Extensions
-
-      # a generic factory class for use with FFI data types that adds default
-      # arguments to constructor calls
-      #
-      #  # when NativeHash is created, the args are [ptr, :string, :string]
-      #  bind :get_hash, :returning => NativeHash.factory( :string, :string )
-      class Factory
-        def initialize( klass, *args )
-          @klass = klass
-          @added_args = args
-        end
-
-        def new( *args )
-          @klass.new( *args, *@added_args )
-        end
-
-        def real_class
-          @klass
-        end
-
-        def size
-          @klass.size
-        end
-      end
 
       # convenience method that returns a Factory instance for self with the
       # given args
