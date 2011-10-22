@@ -4,11 +4,11 @@ require 'ffi'
 
 module Svn #:nodoc:
 
-  class Revision < Root
+  LOG_PROP_NAME = 'svn:log'
+  AUTHOR_PROP_NAME = 'svn:author'
+  TIMESTAMP_PROP_NAME = 'svn:date'
 
-    LOG_PROP_NAME = 'svn:log'
-    AUTHOR_PROP_NAME = 'svn:author'
-    TIMESTAMP_PROP_NAME = 'svn:date'
+  class Revision < Root
 
     attr_reader :num
     attr_reader :fs
@@ -74,9 +74,10 @@ module Svn #:nodoc:
         :validate => Error.return_check
       ) { |out, this| [ out, fs, num, pool ] }
 
-    def log
+    def message
       prop( LOG_PROP_NAME )
     end
+    alias_method :log, :message
 
     def author
       prop( AUTHOR_PROP_NAME )
