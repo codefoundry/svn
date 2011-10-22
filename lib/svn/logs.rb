@@ -1,3 +1,4 @@
+require 'time'
 require 'rubygems'
 require 'ffi'
 
@@ -8,8 +9,14 @@ module Svn #:nodoc:
     extend FFI::Library
 
     NodeKind = enum( :none, :file, :dir, :unknown )
+    Actions = enum(
+        :added, 65,
+        :deleted, 68,
+        :replaced, 82,
+        :modified, 77
+      )
 
-    # a changed path description
+    # description of a changed path
     class ChangedPathStruct < FFI::Struct
       layout(
           :action, :char, # 'A'dd, 'D'elete, 'R'eplace, 'M'odify
@@ -17,6 +24,27 @@ module Svn #:nodoc:
           :copyfrom_rev, :long,
           :node_kind, NodeKind
         )
+
+      # returns a character that represents the type of the change: :added,
+      # :deleted, :replaced, :modified
+      def action
+        Actions[ self[:action] ]
+      end
+
+      # returns the path's node type (:none, :file, :dir, :unknown)
+      def kind
+        self[:node_kind]
+      end
+
+      # if the node was copied from another path/rev, returns the [path, rev]
+      # pair or nil otherwise
+      def copied_from
+        [ self[:copyfrom_path], self[:copyfrom_rev] ] unless self[:copyfrom_rev] == -1
+      end
+
+      def to_h
+        { :action => action, :kind => kind, :copied_from => copied_from }
+      end
     end
 
     # create a mapped type for use elsewhere
@@ -37,16 +65,31 @@ module Svn #:nodoc:
       end
       alias_method :num, :rev
 
-      def props
-        self[:rev_props]
-      end
-
       def has_children?
         ( self[:has_children] == 1 )
       end
 
       def changed_paths
-        self[:changed_paths].to_h
+        @changed ||= (
+            self[:changed_paths].null? ? nil : self[:changed_paths].to_h
+          )
+      end
+
+      def props
+        self[:rev_props]
+      end
+
+      def message
+        props[ LOG_PROP_NAME ]
+      end
+      alias_method :log, :message
+
+      def author
+        props[ AUTHOR_PROP_NAME ]
+      end
+
+      def timestamp
+        Time.parse( props[ TIMESTAMP_PROP_NAME ] )
       end
     end
 
