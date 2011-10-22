@@ -60,36 +60,57 @@ module Svn #:nodoc:
           :changed_paths, AprHash.factory( :string, ChangedPath )
         )
 
+      # returns the revision number
       def rev
         self[:rev]
       end
       alias_method :num, :rev
 
+      # returns whether this revision has children
       def has_children?
         ( self[:has_children] == 1 )
       end
 
+      # returns a Hash of the revision's changed paths
       def changed_paths
-        @changed ||= (
-            self[:changed_paths].null? ? nil : self[:changed_paths].to_h
+        @changed_paths ||= ( self[:changed_paths].null? ? nil :
+            self[:changed_paths].to_h.tap { |by_path|
+                by_path.each_key { |k| by_path[k] = by_path[k].to_h }
+              }
           )
       end
 
+      # returns a Hash of the revision's properties
       def props
-        self[:rev_props]
+        @props ||= ( self[:rev_props].null? ? nil : self[:rev_props].to_h )
       end
 
+      # return the revision's log message
       def message
-        props[ LOG_PROP_NAME ]
+        props[ LOG_PROP_NAME ] if props
       end
       alias_method :log, :message
 
+      # return the revision's author
       def author
-        props[ AUTHOR_PROP_NAME ]
+        props[ AUTHOR_PROP_NAME ] if props
       end
 
+      # return the Time that this revision was committed
       def timestamp
-        Time.parse( props[ TIMESTAMP_PROP_NAME ] )
+        Time.parse( props[ TIMESTAMP_PROP_NAME ] ) if props
+      end
+
+      # get the contents of this log entry as a multi-level hash
+      def to_h
+        {
+            :rev => rev,
+            :log => message,
+            :author => author,
+            :timestamp => timestamp,
+            :has_children? => has_children?,
+            :changed_paths => changed_paths
+          }
       end
     end
 

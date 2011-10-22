@@ -133,9 +133,12 @@ module Svn #:nodoc:
 
       CollectHistory = FFI::Function.new(
           :pointer, [ :pointer, :pointer, :pointer ]
-        ) do |data_ptr, log_entry, pool|
+        ) do |data_ptr, log_entry_ptr, pool|
         arr = Utils.unwrap( data_ptr )
-        arr << Utils.content_for( log_entry, Log::Entry )
+        # the struct passed here is shared for all calls and the data is freed
+        # and overwritten, so the data from each Log::Entry struct needs to be
+        # copied out using :to_h
+        arr << Utils.content_for( log_entry_ptr, Log::Entry ).to_h
         nil # no error
       end
 
@@ -278,7 +281,13 @@ module Svn #:nodoc:
       changes
     end
 
-    def history( paths, options={}, &block )
+    def history( paths=nil, options={}, &block )
+      # if no paths were passed, but options were, then paths will be a hash
+      if paths.is_a? Hash
+        options = paths
+        paths = nil
+      end
+
       # ensure the options can be passed to C successfully
       paths_c_arr = AprArray.create_from( Array( paths ), :string )
       start_rev = (options[:start_rev] || 0).to_i
