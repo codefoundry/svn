@@ -251,17 +251,17 @@ module Svn #:nodoc:
         :validate => Error.return_check,
         &use_fs_and_add_pool
 
-    # returns an array of "interesting" revisions and paths for path
+    # returns an array of "interesting" [path, rev] pairs for path
     #
     # for more detailed information, use +history+
     #
-    # if a block is given, each [path, rev] pair will be yielded
+    # if a block is given, each pair will be yielded
     #
     # options:
     # +start_rev+ :: restricts revisions to newer than :start_rev
     # +end_rev+ :: restricts revisions to older than :end_rev
     # +cross_copies+ :: continue history at filesystem copies?
-    def change_revs( path, options={}, &block )
+    def changes( path, options={}, &block )
       # ensure the options can be passed to C successfully
       start_rev = (options[:start_rev] || 0).to_i
       end_rev = (options[:end_rev] || youngest).to_i
@@ -281,6 +281,19 @@ module Svn #:nodoc:
       changes
     end
 
+    # returns an array of log entry hashes for relevant revisions, containing:
+    # * revision number (+rev+), +log+, +author+, and +timestamp+
+    #
+    # if a block is given, each log entry hash will be yielded
+    #
+    # options:
+    # +start_rev+ :: restricts revisions to newer than :start_rev
+    # +end_rev+ :: restricts revisions to older than :end_rev
+    # +cross_copies+ :: continue history at filesystem copies?
+    # +include_merged+ :: include merged history?
+    # +include_changes+ :: include change info in +:changed_paths+?
+    #
+    # starting and ending revisions can be switched to reverse the final order
     def history( paths=nil, options={}, &block )
       # if no paths were passed, but options were, then paths will be a hash
       if paths.is_a? Hash
@@ -296,10 +309,6 @@ module Svn #:nodoc:
       discover_changed_paths = ( options[:include_changes] ? 1 : 0 )
       strict_history = ( options[:cross_copies] ? 0 : 1 )
       include_merged = ( options[:include_merged] ? 1 : 0 )
-      rev_props = ( options[:include_props] ?
-          AprArray.create_from( Array( options[:include_props] ) ) :
-          nil
-        )
 
       # collect the history entries
       history = []
@@ -307,7 +316,7 @@ module Svn #:nodoc:
           self, paths_c_arr,
           start_rev, end_rev, limit,
           discover_changed_paths, strict_history, include_merged,
-          rev_props, nil, nil,
+          nil, nil, nil,
           C::CollectHistory, Utils.wrap( history ),
           pool
         ) )
