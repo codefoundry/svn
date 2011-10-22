@@ -69,6 +69,7 @@ module Svn #:nodoc:
     # if the type is a FFI::Pointer, this will try to instantiate it; to avoid
     # instantiation, pass :pointer as the type
     def content_from( pointer, type, len=nil )
+      return if pointer.nil?
       if type.is_a? Array
         type.inject( pointer ) do |ptr, subtype|
           content_for( ptr, subtype, len )
@@ -100,6 +101,7 @@ module Svn #:nodoc:
     #  ptr = get_hash( out_ptr )
     #  hash = content_for( out_ptr, Hash )
     def content_for( pointer, type, len=nil )
+      return if pointer.nil?
       if type.is_a? Array
         type.inject( pointer ) do |ptr, subtype|
           content_for( ptr, subtype, len )
