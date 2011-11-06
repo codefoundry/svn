@@ -2,6 +2,7 @@ require 'rubygems'
 require 'ffi'
 
 require 'svn/utils'
+require 'svn/misc'
 require 'svn/errors'
 require 'svn/pools'
 require 'svn/apr_utils'

@@ -6,16 +6,6 @@ module Svn #:nodoc:
 
   module Log
 
-    extend FFI::Library
-
-    NodeKind = enum( :none, :file, :dir, :unknown )
-    Actions = enum(
-        :added, 65,
-        :deleted, 68,
-        :replaced, 82,
-        :modified, 77
-      )
-
     # description of a changed path
     class ChangedPathStruct < FFI::Struct
       layout(
@@ -36,14 +26,21 @@ module Svn #:nodoc:
         self[:node_kind]
       end
 
+      # returns whether the "copied from" values are known
+      def copyfrom_known?
+        ( self[:copyfrom_rev] >= 0 )
+      end
+
       # if the node was copied from another path/rev, returns the [path, rev]
       # pair or nil otherwise
       def copied_from
-        [ self[:copyfrom_path], self[:copyfrom_rev] ] unless self[:copyfrom_rev] == -1
+        [ self[:copyfrom_path], self[:copyfrom_rev] ] if copyfrom_known?
       end
 
       def to_h
-        { :action => action, :kind => kind, :copied_from => copied_from }
+        h = { :action => action, :kind => kind }
+        h.merge( :copied_from => copied_from ) if copyfrom_known?
+        h
       end
     end
 
