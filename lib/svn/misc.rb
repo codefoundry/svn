@@ -59,7 +59,7 @@ module Svn #:nodoc:
           :text_mods? => text_mods?,
           :prop_mods? => prop_mods?,
         }
-      h.merge( :copied_from => copied_from ) if copyfrom_known?
+      h.merge!( :copied_from => copied_from ) if copyfrom_known?
       h
     end
   end

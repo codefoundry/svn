@@ -39,7 +39,7 @@ module Svn #:nodoc:
 
       def to_h
         h = { :action => action, :kind => kind }
-        h.merge( :copied_from => copied_from ) if copyfrom_known?
+        h.merge!( :copied_from => copied_from ) if copyfrom_known?
         h
       end
     end
@@ -100,14 +100,15 @@ module Svn #:nodoc:
 
       # get the contents of this log entry as a multi-level hash
       def to_h
-        {
+        h = {
             :rev => rev,
             :log => message,
             :author => author,
             :timestamp => timestamp,
             :has_children? => has_children?,
-            :changed_paths => changed_paths
           }
+        h.merge!( :changed_paths => changed_paths ) if changed_paths
+        h
       end
     end
 
