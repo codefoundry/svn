@@ -15,8 +15,8 @@ module Svn #:nodoc:
       end
 
       # free and release a pool
-      def release( pool )
-        C.destroy( pool )
+      def release( ptr )
+        C.destroy( ptr )
       end
     end
 
