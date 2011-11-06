@@ -55,11 +55,15 @@ module Svn #:nodoc:
           [ :pool ],
           :pointer
 
-      # pool accessor
+      # pool accessor -- returns a Pointer instead of a Pool because Pool
+      # objects will destroy the pool when they are garbage collected. If the
+      # pool was created in SVN, we should never destroy it and if the pool was
+      # created elsewhere, then we should let the original instance destroy it.
+      # This means that the function here should not actually return a Pool.
       attach_function :pool,
           :apr_hash_pool_get,
           [ :hash ],
-          :pool
+          :pointer
 
       # size
       attach_function :count,
@@ -99,7 +103,11 @@ module Svn #:nodoc:
 
     # bound method definitions
     bind :size, :to => :count
+
+    # because pool returns a Pointer and not a Pool as is expected, make it
+    # private so others can't use it.
     bind :pool
+    private :pool
 
     def each_pair
       # outgoing pointers for keys and values
@@ -186,12 +194,9 @@ module Svn #:nodoc:
 
     include Enumerable
 
-    attr_reader :pool
-
-    def initialize( ptr, type, pool=RootPool )
+    def initialize( ptr, type )
       super( ptr )
       @type = type
-      @pool = pool
       @pointers = []
     end
 
@@ -200,11 +205,11 @@ module Svn #:nodoc:
       # in +pool+, which defaults to Svn::RootPool
       def create( type, nelts, pool=RootPool )
         ptr = C.create( pool, nelts, FFI::Pointer.size )
-        new( ptr, type, pool )
+        new( ptr, type )
       end
 
       def create_from( rb_arr, type, pool=RootPool )
-        create( type, rb_arr.size, pool ).copy_from( rb_arr )
+        create( type, rb_arr.size ).copy_from( rb_arr )
       end
 
       def release
