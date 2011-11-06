@@ -71,10 +71,16 @@ module Svn #:nodoc:
           :svn_fs_dir_entries,
           [ :out_pointer, :root, :path, :pool ],
           :error
+
+      # changes
+      attach_function :changes,
+          :svn_fs_paths_changed2,
+          [ :out_pointer, :root, :pool ],
+          :error
     end
 
     def pool
-      @pool ||= Svn::RootPool
+      @pool ||= RootPool
     end
 
     # helper procs for method binding
@@ -134,6 +140,13 @@ module Svn #:nodoc:
     # returns a hash of name to property values for +path+
     bind :props_for, :to => :node_proplist,
         :returning => AprHash.factory( :string, [:pointer, :string] ),
+        :before_return => :to_h,
+        :validate => Error.return_check,
+        &add_pool
+
+    # return the changes in this revision or transaction
+    bind :changes,
+        :returning => AprHash.factory( :string, ChangedPath ),
         :before_return => :to_h,
         :validate => Error.return_check,
         &add_pool
