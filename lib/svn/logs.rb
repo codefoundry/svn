@@ -39,7 +39,7 @@ module Svn #:nodoc:
 
       def to_h
         h = { :action => action, :kind => kind }
-        h.merge!( :copied_from => copied_from ) if copyfrom_known?
+        h[:copied_from] = copied_from if copyfrom_known?
         h
       end
     end
@@ -107,7 +107,7 @@ module Svn #:nodoc:
             :timestamp => timestamp,
             :has_children? => has_children?,
           }
-        h.merge!( :changed_paths => changed_paths ) if changed_paths
+        h[:changed_paths] = changed_paths if changed_paths
         h
       end
     end
