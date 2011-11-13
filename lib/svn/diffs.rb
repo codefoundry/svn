@@ -59,7 +59,7 @@ module Svn #:nodoc:
       out_stream
     end
 
-    class FileOptions < FFI::Struct
+    class FileOptionsStruct < FFI::Struct
       layout(
           :ignore_whitespace, :int, # :whitespace,
           :ignore_eol_style, :int,
@@ -76,6 +76,9 @@ module Svn #:nodoc:
       end
     end
 
+    # create a mapped type for use elsewhere
+    FileOptions = FileOptionsStruct.by_ref
+
     module C
 
       extend FFI::Library
@@ -84,7 +87,7 @@ module Svn #:nodoc:
       typedef Pool, :pool
       typedef CError.by_ref, :error
       typedef Stream, :stream
-      typedef FileOptions.by_ref, :file_options
+      typedef FileOptions, :file_options
       typedef Diff, :diff
 
       enum :whitespace, [
