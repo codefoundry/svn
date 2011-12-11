@@ -236,6 +236,7 @@ module Svn #:nodoc:
     # returns the number of the youngest revision in the repository
     bind :youngest,
         :returning => :long,
+        :before_return => Proc.new { |rev| revision(rev) },
         :validate => Error.return_check,
         &use_fs_and_add_pool
 
@@ -246,7 +247,7 @@ module Svn #:nodoc:
     bind :revision,
         :returning => :pointer,
         :before_return => Proc.new { |ptr|
-            Revision.new( ptr, fs, pool ) unless ptr.null?
+            Revision.new( ptr, self, pool ) unless ptr.null?
           },
         :validate => Error.return_check,
         &use_fs_and_add_pool

@@ -10,18 +10,24 @@ module Svn #:nodoc:
 
   class Revision < Root
 
-    attr_reader :num
-    attr_reader :fs
+    include Comparable
 
-    def initialize( ptr, fs, pool )
+    attr_reader :num
+    attr_reader :repo
+
+    def initialize( ptr, repo, pool )
       super( ptr )
-      @fs = fs
+      @repo = repo
       @pool = pool
       @num = revnum
     end
 
     def to_i
       @num
+    end
+
+    def <=>( other )
+      to_i <=> other.to_i
     end
 
     module C
@@ -65,14 +71,14 @@ module Svn #:nodoc:
         :returning => CountedString,
         :before_return => :to_s,
         :validate => Error.return_check
-      ) { |out, this, name| [ out, fs, num, name, pool ] }
+      ) { |out, this, name| [ out, repo.fs, num, name, pool ] }
 
     # returns a hash of revision properties
     bind( :props, :to => :proplist,
         :returning => AprHash.factory( :string, [:pointer, :string] ),
         :before_return => :to_h,
         :validate => Error.return_check
-      ) { |out, this| [ out, fs, num, pool ] }
+      ) { |out, this| [ out, repo.fs, num, pool ] }
 
     def message
       prop( LOG_PROP_NAME )
@@ -85,6 +91,39 @@ module Svn #:nodoc:
 
     def timestamp
       Time.parse( prop( TIMESTAMP_PROP_NAME ) )
+    end
+
+    # diffs +path+ with another revision. if no revision is specified, the
+    # previous revision is used.
+    def diff( path, options={} )
+      other = options[:with] if options[:with].is_a? Root
+      other = repo.revision(options[:with]) if options[:with].is_a? Numeric
+      other ||= repo.revision(to_i - 1)
+
+      return other.diff( path, :with => self ) if other < self
+
+      content = ""
+      begin
+        content = file_content_stream( path ).to_counted_string
+      rescue Svn::Error => err
+        raise if options[:raise_errors]
+      end
+
+      other_content = ""
+      begin
+        other_content= other.file_content_stream( path ).to_counted_string
+      rescue Svn::Error => err
+        raise if options[:raise_errors]
+      end
+
+      Diff.string_diff( content, other_content ).unified(
+          :original_header => "#{path}@#{to_s}",
+          :modified_header => "#{path}@#{other}"
+        )
+    end
+
+    def to_s
+      "r#{to_i}"
     end
 
   end
