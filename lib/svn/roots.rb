@@ -120,6 +120,11 @@ module Svn #:nodoc:
         :validate => Error.return_check,
         &add_pool
 
+    bind :file_content_stream, :to => :file_content,
+        :returning => Stream,
+        :validate => Error.return_check,
+        &add_pool
+
     bind :created_rev,
         :returning => :long,
         :validate => Error.return_check,
