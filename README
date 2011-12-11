@@ -9,6 +9,21 @@ In addition, these new bindings expose a ruby-style API and try to hide the
 underlying SVN details---for example, SVN separates repositories from their
 inner filesystems, but this library hides that distinction.
 
+== Getting Started ==
+
+Example code:
+
+ require 'svn'
+ 
+ repo = Svn::Repo.open('/path/to/repo')
+ r4 = repo.revision(4)
+ puts "#{r}, by #{r.author} (on #{r.timestamp.strftime('%Y-%m-%d %H:%M')})\nLog: #{r.log}"
+ 
+ r4.changes.each_pair { |path, changes| ... }
+ puts r4.props.inspect
+ # => {"svn:log"=>"...", "svn:author"=>"blue", "svn:date"=>"2011-10-14T23:51:58.705026Z"}
+ puts r4.diff('/some/repo/file') # by default, against the previous revision
+
 == Current Status ==
 
 Version 0.1.0 supports read-only operations to inspect a subversion repository,
@@ -20,3 +35,5 @@ subject to change. Rubygems version number conventions will be respected, so it
 is recommended that callers specify the version of this library using the "~>"
 operator:
  spec.add_dependency 'ffi', '~> 0.1'
+
+== Contributing ==
