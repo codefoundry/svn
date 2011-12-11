@@ -17,8 +17,3 @@ module Svn
   autoload :Revision, 'svn/revisions'
   autoload :Diff, 'svn/diffs'
 end
-
-if $0 == __FILE__
-  d = Svn::Diff.diff( File.expand_path(ARGV[0]), File.expand_path(ARGV[1]) )
-  puts d.unified.tap { |io| io.rewind }.read
-end
