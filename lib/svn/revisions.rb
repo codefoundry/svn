@@ -96,6 +96,8 @@ module Svn #:nodoc:
     # diffs +path+ with another revision. if no revision is specified, the
     # previous revision is used.
     def diff( path, options={} )
+      raise Svn::Error, "cannot diff directory #{path}@#{to_s}" if dir? path
+
       other = options[:with] if options[:with].is_a? Root
       other = repo.revision(options[:with]) if options[:with].is_a? Numeric
       other ||= repo.revision(to_i - 1)

@@ -22,9 +22,13 @@ module Svn
 
     attr_reader :c_error
 
-    def initialize( c_error )
-      super( c_error.best_message )
-      @c_error = c_error
+    def initialize( message_or_c_error )
+      if message_or_c_error.is_a? CError
+        super( message_or_c_error.best_message )
+        @c_error = message_or_c_error
+      else
+        super( message_or_c_error )
+      end
     end
 
   end
