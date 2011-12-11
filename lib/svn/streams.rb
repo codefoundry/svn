@@ -114,14 +114,36 @@ module Svn
       @read_buf.read_bytes( @in_out_len.read_ulong )
     end
 
+    # reads the stream contents into a String object
+    def read_all
+      content = String.new
+      while bytes = read and !bytes.empty?
+        content << bytes
+      end
+      content
+    end
+    alias_method :to_s, :read_all
+
+    # reads the entire stream and creates a CountedString from the contents
+    #
+    # Note that this function copies the entire stream into Ruby memory and
+    # then copies it again into C memory. There is probably a more efficient
+    # way to do this, by allocating a big string and re-allocing when the size
+    # required overruns that memory
+    def to_counted_string
+      CountedString.from_string( read_all )
+    end
+
     # reads the stream contents into a StringIO object
     def to_string_io
       content = StringIO.new
       while bytes = read and !bytes.empty?
         content.write( bytes )
       end
+      content.rewind
       content
     end
+
   end
 
 end
