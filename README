@@ -1,0 +1,22 @@
+== About ==
+
+This is a library for interacting with Subverison repositories. It is a
+new set of ruby bindings that are simple to use and compatible with RVM
+because they are dynamically linked to libsvn and do not require any native
+extensions.
+
+In addition, these new bindings expose a ruby-style API and try to hide the
+underlying SVN details---for example, SVN separates repositories from their
+inner filesystems, but this library hides that distinction.
+
+== Current Status ==
+
+Version 0.1.0 supports read-only operations to inspect a subversion repository,
+its files, and file properties. Transactions are planned and will be included
+in a future version.
+
+The current release, 0.1.0 is an experimental release and the API included is
+subject to change. Rubygems version number conventions will be respected, so it
+is recommended that callers specify the version of this library using the "~>"
+operator:
+ spec.add_dependency 'ffi', '~> 0.1'
