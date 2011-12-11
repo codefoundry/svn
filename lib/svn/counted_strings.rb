@@ -18,9 +18,21 @@ module Svn #:nodoc:
       self[:data].read_string( self[:length] )
     end
 
+    def inspect
+      to_s.inspect
+    end
+
   end
 
   # the svn_string_t pointer type, which is the one used externally
   CountedString = CountedStringStruct.by_ref
+
+  def CountedString.from_string( content )
+    return content if content.is_a? CountedStringStruct
+    cstr = CountedStringStruct.new
+    cstr[:data] = FFI::MemoryPointer.from_string( content )
+    cstr[:length] = content.size
+    cstr
+  end
 
 end
