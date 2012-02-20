@@ -19,6 +19,10 @@ require 'fileutils'
 TMP_PATH = '/tmp'
 TMP_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
 
+CREATE_TMP_REPO = Proc.new do
+  Svn::Repo.create(TMP_REPO)
+end
+
 REMOVE_TMP_REPO = Proc.new do
   # clean up the temporary repository, if it is present
   FileUtils.rm_rf TMP_REPO if File.exists? TMP_REPO

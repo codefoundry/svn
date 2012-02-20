@@ -23,6 +23,8 @@ module Svn #:nodoc:
       # assertions in SVN libs
       #++
       def open( path, parent=RootPool )
+        raise ArgumentError, 'Path cannot be nil' if path.nil?
+
         # get a new pool for all interactions with this repository
         pool = Pool.create( parent )
 
@@ -38,9 +40,7 @@ module Svn #:nodoc:
       end
 
       def create( path, parent=RootPool )
-        if path.nil?
-          raise Svn::RepositoryCreationFailedError, 'Path cannot be nil'
-        end
+        raise ArgumentError, 'Path cannot be nil' if path.nil?
 
         # get a new pool for all interactions with this repository
         pool = Pool.create( parent )
