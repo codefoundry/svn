@@ -9,3 +9,17 @@ RSpec.configure do |config|
   config.run_all_when_everything_filtered = true
   config.filter_run :focus
 end
+
+# add the library path
+$LOAD_PATH.unshift File.join(__FILE__, '..', 'lib')
+require 'svn'
+
+require 'fileutils'
+
+TMP_PATH = '/tmp'
+TMP_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
+
+REMOVE_TMP_REPO = Proc.new do
+  # clean up the temporary repository, if it is present
+  FileUtils.rm_rf TMP_REPO if File.exists? TMP_REPO
+end
