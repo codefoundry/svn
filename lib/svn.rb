@@ -16,4 +16,12 @@ module Svn
   autoload :Root, 'svn/roots'
   autoload :Revision, 'svn/revisions'
   autoload :Diff, 'svn/diffs'
+
+  def self.create( path )
+    Repo.create( path )
+  end
+
+  def self.open( path )
+    Repo.open( path )
+  end
 end
