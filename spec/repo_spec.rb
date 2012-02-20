@@ -4,8 +4,6 @@ describe Svn::Repo do
 
   context ".create" do
 
-    after(&REMOVE_TMP_REPO)
-
     it "complains about nil paths" do
       expect { Svn::Repo.create(nil) }.to raise_error(
           ArgumentError, /cannot be nil/
@@ -26,17 +24,18 @@ describe Svn::Repo do
     end
 
     it "can create a new repository" do
-      repo = Svn::Repo.create( TMP_REPO )
-      repo.should be_a(Svn::Repo)
-      repo.null?.should be_false
+      begin
+        repo = Svn::Repo.create( test_repo_path )
+        repo.should be_a(Svn::Repo)
+        repo.null?.should be_false
+      ensure
+        remove_test_repo
+      end
     end
 
   end
 
   context ".open" do
-
-    before(&CREATE_TMP_REPO)
-    after(&REMOVE_TMP_REPO)
 
     it "complains about nil paths" do
       expect {
@@ -52,12 +51,14 @@ describe Svn::Repo do
 
     it "complains about paths inside the repository" do
       expect {
-        Svn::Repo.open( File.join( TMP_REPO, 'trunk', 'blah' ) )
+        Svn::Repo.open( File.join( test_repo_path, 'trunk', 'blah' ) )
       }.to( raise_error( Svn::PathNotFoundError ) )
     end
 
     it "can open an existing repository" do
-      repo = Svn::Repo.open(TMP_REPO)
+      create_test_repo
+
+      repo = Svn::Repo.open(test_repo_path)
       repo.should be_a(Svn::Repo)
       repo.null?.should be_false
     end
@@ -66,19 +67,48 @@ describe Svn::Repo do
 
   context "#revision" do
 
-    before(&CREATE_TMP_REPO)
-    after(&REMOVE_TMP_REPO)
+    before do
+      create_test_repo
+      @repo = open_test_repo
+    end
+
+    after do
+      remove_test_repo
+    end
 
     it "complains about invalid revision numbers" do
-      repo = Svn::Repo.open( TMP_REPO )
       expect {
-        repo.revision(10_000_000)
+        @repo.revision(10_000_000)
       }.to raise_error( Svn::InvalidRevisionError )
     end
 
     it "opens valid revisions" do
-      repo = Svn::Repo.open( TMP_REPO )
-      rev = repo.revision(0)
+      rev = @repo.revision(0)
+      rev.should be_a( Svn::Revision )
+      rev.null?.should be_false
+    end
+
+  end
+
+  context "#youngest" do
+    
+    before do
+      create_test_repo
+      @repo = open_test_repo
+    end
+
+    after do
+      remove_test_repo
+    end
+
+    it "returns a revision" do
+      rev = @repo.youngest
+      rev.should be_a( Svn::Revision )
+      rev.null?.should be_false
+    end
+
+    it "is aliased as latest" do
+      rev = @repo.latest
       rev.should be_a( Svn::Revision )
       rev.null?.should be_false
     end

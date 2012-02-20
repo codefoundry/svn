@@ -14,19 +14,28 @@ end
 $LOAD_PATH.unshift File.join(__FILE__, '..', 'lib')
 require 'svn'
 
-require 'fileutils'
-
 # print error codes/classes that are dynamically generated to stderr.
 $debug_svn_errors = true
 
+# create and destroy the test repo
 TMP_PATH = '/tmp'
-TMP_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
+TEST_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
 
-CREATE_TMP_REPO = Proc.new do
-  Svn::Repo.create(TMP_REPO)
+require 'fileutils'
+
+def test_repo_path
+  TEST_REPO
 end
 
-REMOVE_TMP_REPO = Proc.new do
+def create_test_repo
+  Svn::Repo.create( test_repo_path )
+end
+
+def open_test_repo
+  Svn::Repo.open( test_repo_path )
+end
+
+def remove_test_repo
   # clean up the temporary repository, if it is present
-  FileUtils.rm_rf TMP_REPO if File.exists? TMP_REPO
+  FileUtils.rm_rf test_repo_path if File.exists? test_repo_path
 end
