@@ -28,15 +28,23 @@ module Svn
         ERROR_CLASSES[code]
       end
 
-      def add( code, name )
-        begin
-          # fetch an existing error class and save it for the error code
-          klass = Svn.const_get( name )
-        rescue NameError => err
-          # create the error class and return it
-          $stderr.puts "Creating #{name} for #{code}" if $debug_svn_errors
-          klass = Svn.const_set( name, Class.new( Svn::Error ) )
+      def add( code, class_or_name )
+        klass = nil # keep in scope
+
+        if class_or_name.is_a? Class
+          klass = class_or_name
+        else
+          name = class_or_name
+          begin
+            # fetch an existing error class and save it for the error code
+            klass = Svn.const_get( name )
+          rescue NameError => err
+            # create the error class and return it
+            $stderr.puts "Creating #{name} for #{code}" if $debug_svn_errors
+            klass = Svn.const_set( name, Class.new( Svn::Error ) )
+          end
         end
+
         ERROR_CLASSES[code] = klass
       end
 
@@ -69,6 +77,7 @@ module Svn
   # create sensible names for known error classes
   Error.add( 2, :PathNotFoundError )
   Error.add( 160006, :InvalidRevisionError )
+  Error.add( 165002, ArgumentError )
   Error.add( 200011, :DirectoryNotEmptyError )
 
   class CError < FFI::ManagedStruct
