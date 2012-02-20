@@ -34,6 +34,7 @@ module Svn
           klass = Svn.const_get( name )
         rescue NameError => err
           # create the error class and return it
+          $stderr.puts "Creating #{name} for #{code}" if $debug_svn_errors
           klass = Svn.const_set( name, Class.new( Svn::Error ) )
         end
         ERROR_CLASSES[code] = klass
@@ -67,6 +68,7 @@ module Svn
 
   # create sensible names for known error classes
   Error.add( 2, :PathNotFoundError )
+  Error.add( 160006, :InvalidRevisionError )
   Error.add( 200011, :DirectoryNotEmptyError )
 
   class CError < FFI::ManagedStruct

@@ -16,6 +16,9 @@ require 'svn'
 
 require 'fileutils'
 
+# print error codes/classes that are dynamically generated to stderr.
+$debug_svn_errors = true
+
 TMP_PATH = '/tmp'
 TMP_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
 
