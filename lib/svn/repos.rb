@@ -38,6 +38,10 @@ module Svn #:nodoc:
       end
 
       def create( path, parent=RootPool )
+        if path.nil?
+          raise Svn::RepositoryCreationFailedError, 'Path cannot be nil'
+        end
+
         # get a new pool for all interactions with this repository
         pool = Pool.create( parent )
 
