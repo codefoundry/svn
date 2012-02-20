@@ -206,7 +206,9 @@ module Svn #:nodoc:
         # create a new method; blocks are used to re-arrange arguments
         define_method( name ) do |*args|
           # create new pointers for the specified out arguments
-          return_ptrs = return_types.map { |type| FFI::MemoryPointer.new( type ) }
+          return_ptrs = return_types.map { |type|
+            FFI::MemoryPointer.new( type )
+          }
 
           return_val = nil # keep it in scope
           if block
@@ -241,7 +243,7 @@ module Svn #:nodoc:
     end
 
     # extend FFI objects with the new helper methods
-    #FFI::Struct.extend Extensions
+    FFI::Struct.extend Extensions
     FFI::AutoPointer.extend Extensions
 
   end
