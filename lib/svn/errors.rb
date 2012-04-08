@@ -76,6 +76,7 @@ module Svn
 
   # create sensible names for known error classes
   Error.add( 2, :PathNotFoundError )
+  Error.add( 20, :NotADirectoryError )
   Error.add( 160006, :InvalidRevisionError )
   Error.add( 165002, ArgumentError )
   Error.add( 200011, :DirectoryNotEmptyError )
