@@ -10,26 +10,44 @@ describe Svn::Repo do
         )
     end
 
+    it "will complain about already existing repositories" do
+      path = link_test_repo
+      begin
+        expect { Svn::Repo.create(test_repo_path) }.to raise_error(
+            ArgumentError, /existing repository/
+          )
+      ensure
+        unlink_test_repo( path )
+      end
+    end
+
     it "will not overwrite an existing path" do
-      expect { Svn::Repo.create(TMP_PATH) }.to raise_error(
-          Svn::DirectoryNotEmptyError, /exists/
-        )
+      path = temp_path('existing')
+      FileUtils.mkdir_p(temp_path('existing', 'content'))
+      begin
+        expect { Svn::Repo.create(path) }.to raise_error(
+            Svn::DirectoryNotEmptyError, /exists/
+          )
+      ensure
+        FileUtils.rm_rf(path)
+      end
     end
 
     it "complains about invalid paths" do
       expect {
-        invalid_path = File.join( TMP_PATH, 'blah', 'blah', 'blah' )
+        invalid_path = temp_path( 'blah', 'blah', 'blah' )
         Svn::Repo.create( invalid_path )
-      }.to( raise_error( Svn::PathNotFoundError ) )
+      }.to( raise_error( Svn::PathNotFoundError) )
     end
 
     it "can create a new repository" do
+      path = temp_path('new_repo')
+      repo = Svn::Repo.create( path )
       begin
-        repo = Svn::Repo.create( test_repo_path )
         repo.should be_a(Svn::Repo)
         repo.null?.should be_false
       ensure
-        remove_test_repo
+        FileUtils.rm_rf(path) if File.exists? path
       end
     end
 
@@ -45,22 +63,30 @@ describe Svn::Repo do
 
     it "complains about invalid paths" do
       expect {
-        Svn::Repo.open( File.join( TMP_PATH, 'blah', 'blah' ) )
+        Svn::Repo.open( temp_path( 'blah', 'blah' ) )
       }.to( raise_error( Svn::PathNotFoundError ) )
     end
 
     it "complains about paths inside the repository" do
-      expect {
-        Svn::Repo.open( File.join( test_repo_path, 'trunk', 'blah' ) )
-      }.to( raise_error( Svn::PathNotFoundError ) )
+      path = link_test_repo
+      begin
+        expect {
+          Svn::Repo.open( File.join( test_repo_path, 'trunk', 'blah' ) )
+        }.to( raise_error( Svn::PathNotFoundError ) )
+      ensure
+        unlink_test_repo(path)
+      end
     end
 
     it "can open an existing repository" do
-      create_test_repo
-
-      repo = Svn::Repo.open(test_repo_path)
-      repo.should be_a(Svn::Repo)
-      repo.null?.should be_false
+      path = link_test_repo
+      begin
+        repo = Svn::Repo.open(path)
+        repo.should be_a(Svn::Repo)
+        repo.null?.should be_false
+      ensure
+        unlink_test_repo( path )
+      end
     end
 
   end
@@ -68,12 +94,12 @@ describe Svn::Repo do
   context "#revision" do
 
     before do
-      create_test_repo
-      @repo = open_test_repo
+      @path = link_test_repo
+      @repo = open_test( @path )
     end
 
     after do
-      remove_test_repo
+      unlink_test_repo( @path )
     end
 
     it "complains about invalid revision numbers" do
@@ -86,6 +112,9 @@ describe Svn::Repo do
       rev = @repo.revision(0)
       rev.should be_a( Svn::Revision )
       rev.null?.should be_false
+      rev = @repo.revision(1)
+      rev.should be_a( Svn::Revision )
+      rev.null?.should be_false
     end
 
   end
@@ -93,12 +122,12 @@ describe Svn::Repo do
   context "#youngest" do
     
     before do
-      create_test_repo
-      @repo = open_test_repo
+      @path = link_test_repo
+      @repo = open_test( @path )
     end
 
     after do
-      remove_test_repo
+      unlink_test_repo( @path )
     end
 
     it "returns a revision" do

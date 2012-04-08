@@ -17,21 +17,58 @@ require 'svn'
 # print error codes/classes that are dynamically generated to stderr.
 $debug_svn_errors = true
 
-# create and destroy the test repo
-TMP_PATH = '/tmp'
-TEST_REPO = File.join( TMP_PATH, 'ruby_svn_test_repo' )
-
+# manage the test repo
+require 'tempfile'
 require 'fileutils'
+require 'zlib'
+require 'archive/tar/minitar'
+
+class Counter
+  def initialize
+    @num = 0
+  end
+
+  def next
+    @num += 1
+    @num
+  end
+end
+
+TEMP_PATH_BASE = File.join( Dir.tmpdir, "svn-#{Process.pid}" )
+TEST_REPO_TARBALL = File.join( File.dirname(__FILE__), '..', 'test', 'test_repo.tar.gz' )
+TEST_COUNTER = Counter.new
+
+ObjectSpace.define_finalizer(TEMP_PATH_BASE) do
+  FileUtils.rm_rf( File.join( Dir.tmpdir, "svn-#{Process.pid}" ) )
+end
+
+def temp_path( *parts )
+  File.join( TEMP_PATH_BASE, *parts )
+end
 
 def test_repo_path
-  TEST_REPO
+  temp_path( 'test_repo' )
 end
 
-def create_test_repo
-  Svn::Repo.create( test_repo_path )
+# unpacks a fresh copy of the test repo tarball
+def unpack_test_repo
+  FileUtils.mkdir_p(TEMP_PATH_BASE)
+  gzip_stream = Zlib::GzipReader.new(File.open(TEST_REPO_TARBALL))
+  Archive::Tar::Minitar.unpack(gzip_stream, temp_path)
 end
 
-def open_test_repo
+def link_test_repo
+  name = "test-#{TEST_COUNTER.next}"
+  link_path = temp_path(name)
+  FileUtils.ln_s(test_repo_path, link_path)
+  link_path
+end
+
+def unlink_test_repo( path )
+  FileUtils.rm( path )
+end
+
+def open_test( name )
   Svn::Repo.open( test_repo_path )
 end
 
@@ -39,3 +76,6 @@ def remove_test_repo
   # clean up the temporary repository, if it is present
   FileUtils.rm_rf test_repo_path if File.exists? test_repo_path
 end
+
+# make sure the test repo exists for all specs
+unpack_test_repo
