@@ -11,14 +11,9 @@ describe Svn::Repo do
     end
 
     it "will complain about already existing repositories" do
-      path = link_test_repo
-      begin
-        expect { Svn::Repo.create(test_repo_path) }.to raise_error(
-            ArgumentError, /existing repository/
-          )
-      ensure
-        unlink_test_repo( path )
-      end
+      expect { Svn::Repo.create(test_repo_path) }.to raise_error(
+          ArgumentError, /existing repository/
+        )
     end
 
     it "will not overwrite an existing path" do
