@@ -235,7 +235,7 @@ module Svn #:nodoc:
     end
 
     use_fs_and_add_pool = Proc.new { |out, this, *args|
-        [ out, fs, *args, pool ]
+        ([ out, fs ] + args) << pool
       }
 
     # use the above C module for the source of bound functions

@@ -36,7 +36,7 @@ module Svn #:nodoc:
       end
 
       def new( *args )
-        @klass.new( *args, *@added_args )
+        @klass.new( *(args + @added_args) )
       end
 
       def from_native( ptr, ctx )

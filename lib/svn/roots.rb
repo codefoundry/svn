@@ -85,7 +85,7 @@ module Svn #:nodoc:
 
     # helper procs for method binding
     test_c_true = Proc.new { |i| i == 1 }
-    add_pool = Proc.new { |out, this, *args| [ out, this, *args, pool ] }
+    add_pool = Proc.new { |out, this, *args| ([ out, this ] + args) << pool }
 
     # use the above C module for the source of bound functions
     bind_to C
