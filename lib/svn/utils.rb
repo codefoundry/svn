@@ -210,15 +210,18 @@ module Svn #:nodoc:
             FFI::MemoryPointer.new( type )
           }
 
+          # create the argument list for the function
+          call_args = return_ptrs.dup
+          call_args << self
+          call_args += args
+
           return_val = nil # keep it in scope
           if block
             # call the method with the arguments after re-arranging via block
-            return_val = meth.call( *instance_exec(
-                *return_ptrs, self, *args, &block
-              ) )
+            return_val = meth.call( *instance_exec( *call_args, &block ) )
           else
             # call the method with the standard argument order
-            return_val = meth.call( *return_ptrs, self, *args )
+            return_val = meth.call( *call_args )
           end
 
           # call the return check, if present
