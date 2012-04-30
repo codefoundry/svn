@@ -28,12 +28,13 @@ module Svn #:nodoc:
         # get a new pool for all interactions with this repository
         pool = Pool.create( parent )
 
-        # TODO: we may need to call find_root_path for this, if C.open expects
-        # an exact repository root path
         out = FFI::MemoryPointer.new( :pointer )
 
+        # make sure the path is canonical: full path from / and no trailing /
+        final_path = File.expand_path( path.chomp(File::SEPARATOR) )
+
         Error.check_and_raise(
-            C.open( out, path.chomp(File::SEPARATOR), pool )
+            C.open( out, final_path, pool )
           )
 
         new( out.read_pointer, pool )
@@ -46,6 +47,9 @@ module Svn #:nodoc:
         pool = Pool.create( parent )
 
         out = FFI::MemoryPointer.new( :pointer )
+
+        # make sure the path is canonical: full path from / and no trailing /
+        final_path = File.expand_path( path.chomp(File::SEPARATOR) )
 
         Error.check_and_raise(
             C.create(
