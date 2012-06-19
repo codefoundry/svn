@@ -32,7 +32,7 @@ module Svn #:nodoc:
 
     module C
       extend FFI::Library
-      ffi_lib 'libsvn_fs-1.so.1'
+      ffi_lib ['libsvn_fs-1', 'libsvn_fs-1.so.1']
 
       typedef :pointer, :out_pointer
       typedef Pool, :pool

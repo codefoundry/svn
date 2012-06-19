@@ -24,7 +24,7 @@ module Svn
 
     module C
       extend FFI::Library
-      ffi_lib 'libsvn_subr-1.so.1'
+      ffi_lib ['libsvn_subr-1', 'libsvn_subr-1.so.1']
 
       typedef :pointer, :in_out_len
       typedef CError.by_ref, :error

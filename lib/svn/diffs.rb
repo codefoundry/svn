@@ -158,7 +158,7 @@ module Svn #:nodoc:
     module C
 
       extend FFI::Library
-      ffi_lib 'libsvn_diff-1.so.1'
+      ffi_lib ['libsvn_diff-1', 'libsvn_diff-1.so.1']
 
       typedef :pointer, :out_pointer
       typedef Pool, :pool
