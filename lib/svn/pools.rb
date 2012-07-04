@@ -22,7 +22,7 @@ module Svn #:nodoc:
 
     module C
       extend FFI::Library
-      ffi_lib 'libapr-1.so.0'
+      ffi_lib ['libapr-1', 'libapr-1.so.0']
 
       typedef :int, :apr_status
       typedef Pool, :pool

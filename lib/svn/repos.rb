@@ -99,7 +99,7 @@ module Svn #:nodoc:
 
     module C
       extend FFI::Library
-      ffi_lib 'libsvn_repos-1.so.1'
+      ffi_lib ['libsvn_repos-1', 'libsvn_repos-1.so.1']
 
       # convenience pointers
       typedef :pointer, :out_pointer
@@ -214,7 +214,7 @@ module Svn #:nodoc:
       #    [ :out_pointer, :repo, :out_pointer, :transaction ],
       #    :error
 
-      ffi_lib 'libsvn_fs-1.so.1'
+      ffi_lib ['libsvn_fs-1', 'libsvn_fs-1.so.1']
 
       # youngest revision number accessor
       attach_function :youngest,
